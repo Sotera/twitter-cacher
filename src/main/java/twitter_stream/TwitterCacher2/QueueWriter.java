@@ -82,8 +82,6 @@ public class QueueWriter implements Runnable {
         }
         
         String filename = outputDirectory + FILE_PREFIX + TIME_FORMAT.format(time) + FILE_EXT;
-        //String filename = outputDirectory + FILE_PREFIX + FILE_EXT;
-        System.out.println(filename);
         File writerFile = new File(filename);
         if(!writerFile.exists()) {
         	writerFile.createNewFile();
