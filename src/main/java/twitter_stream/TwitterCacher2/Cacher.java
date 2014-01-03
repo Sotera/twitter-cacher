@@ -4,6 +4,7 @@ import java.io.IOException;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.LinkedBlockingQueue;
 
+import com.cybozu.labs.langdetect.LangDetectException;
 import com.twitter.hbc.ClientBuilder;
 import com.twitter.hbc.core.Client;
 import com.twitter.hbc.core.Constants;
@@ -54,6 +55,8 @@ public class Cacher {
 	        t.start();
 		} catch(IOException ioe) {
 			ioe.printStackTrace();
+		} catch (LangDetectException e) {
+			e.printStackTrace();
 		}
         
 		//hosebirdClient.stop();

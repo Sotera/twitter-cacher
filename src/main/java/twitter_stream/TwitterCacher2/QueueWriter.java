@@ -12,6 +12,13 @@ import java.util.Calendar;
 import java.util.Date;
 import java.util.concurrent.BlockingQueue;
 
+import twitter4j.internal.org.json.JSONArray;
+import twitter4j.internal.org.json.JSONException;
+import twitter4j.internal.org.json.JSONObject;
+
+import com.cybozu.labs.langdetect.Detector;
+import com.cybozu.labs.langdetect.DetectorFactory;
+import com.cybozu.labs.langdetect.LangDetectException;
 import com.twitter.hbc.core.Client;
 
 public class QueueWriter implements Runnable {
@@ -20,16 +27,20 @@ public class QueueWriter implements Runnable {
 	private String outputDirectory = "./data/";
 	private BufferedWriter writer;
 	
+	private static String PROFILE_DIRECTORY = "src/main/resources/profiles";
+	
 	private Client hosebirdClient;
 	
 	private static String FILE_PREFIX = "TWITTER_LOG_";
     private static String FILE_EXT = ".tsv";
 	private static SimpleDateFormat TIME_FORMAT = new SimpleDateFormat("yyyy_MMM_dd_HH-mm-ss_z");
 	
-	public QueueWriter(BlockingQueue<String> q, Client c) throws IOException {
+	public QueueWriter(BlockingQueue<String> q, Client c) throws IOException, LangDetectException {
 		msgQueue = q;
 		writer = createNewWriter();
 		hosebirdClient = c;
+		
+		DetectorFactory.loadProfile(PROFILE_DIRECTORY);
 	}
 
 	public void run() {
@@ -55,10 +66,39 @@ public class QueueWriter implements Runnable {
 				}
 				//System.out.println(msg);
 				try {
-					writer.write(msg);
+					JSONObject tweetJson = new JSONObject(msg);
+					
+					if(tweetJson.has("id_str")) {
+						String id = String.valueOf(tweetJson.getString("id_str"));
+				        String text = tweetJson.getString("text").replaceAll("\r", "").replaceAll("\n", "").replaceAll("\t", " ");
+				        String timestamp = tweetJson.getString("created_at");
+				        JSONObject user = tweetJson.getJSONObject("user");
+				        String screenName = user.getString("screen_name").replaceAll("\r", "").replaceAll("\n", "").replaceAll("\t", " ");
+				        String userLocation = user.getString("location").replaceAll("\r", "").replaceAll("\n", "").replaceAll("\t", " ");
+				        
+				        String latitude = "";
+				        String longitude = "";
+				        if(tweetJson.getString("coordinates") != null) {
+				        	JSONArray coords = tweetJson.getJSONObject("coordinates").getJSONArray("coordinates");
+				        	longitude = coords.getString(0);
+				        	latitude = coords.getString(1);
+				        }
+				        
+				        String language = detectLanguage(text);
+				        
+				        String source = tweetJson.getString("source").replaceAll("\r", "").replaceAll("\n", "").replaceAll("\t", " ");
+	
+				        String tweetRecord = String.format("%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s\t%s", id, timestamp, screenName, userLocation, latitude, longitude, text, language, source);
+						writer.write(tweetRecord);
+						writer.newLine();
+					} else {
+						System.out.println(msg);
+					}
 		            //writer.newLine();
 				} catch(IOException ioe) {
 					ioe.printStackTrace();
+				} catch(JSONException je) {
+					je.printStackTrace();
 				}
 				if(count % 50000 == 0) {
 					startNewLog();
@@ -101,6 +141,19 @@ public class QueueWriter implements Runnable {
             writer = createNewWriter();
         } catch (IOException e) {
             e.printStackTrace();  //To change body of catch statement use File | Settings | File Templates.
+        }
+    }
+	
+	private String detectLanguage(String text) {
+        try {
+
+            Detector langDetector = DetectorFactory.create();
+            langDetector.append(text);
+            return langDetector.detect();
+
+        } catch (LangDetectException e) {
+        	e.printStackTrace();
+            return "";
         }
     }
 }
