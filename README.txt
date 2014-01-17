@@ -1,4 +1,4 @@
-TwitterCacher2
+twitter-cacher
 ==============
 Twitter Scraper
 
