@@ -1,0 +1,17 @@
+#!/bin/bash
+# TwitterCacher2
+# chkconfig: 345 99 01 
+
+case $1 in
+    start)
+        /bin/bash /usr/lib/TwitterCacher2/twitterCacher-start.sh
+    ;;
+    stop)
+        /bin/bash /usr/lib/TwitterCacher2/twitterCacher-stop.sh
+    ;;
+    restart)
+        /bin/bash /usr/lib/TwitterCacher2/twitterCacher-stop.sh
+        /bin/bash /usr/lib/TwitterCacher2/twitterCacher-start.sh
+    ;;
+esac
+exit 0
